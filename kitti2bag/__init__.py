@@ -125,19 +125,22 @@ def save_camera_data(bag, kitti, camera, timestamps):
 
     image_paths = getattr(kitti, 'cam{}_files'.format(camera.nr))
     for timestamp, image_path in tqdm(list(zip(timestamps, image_paths))):
-        cv_image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        camera_info.height, camera_info.width = cv_image.shape[:2]
-        encoding = 'bgr8' if camera.is_rgb else 'mono8'
-        image_message = cv_bridge.cv2_to_imgmsg(cv_image, encoding=encoding)
-        image_message.header.frame_id = rectified_camera_frame_id
-        t = to_rostime(timestamp)
-        image_message.header.stamp = t
-        camera_info.header.stamp = t
-        # Follow the naming conventions from
-        # http://docs.ros.org/melodic/api/sensor_msgs/html/msg/CameraInfo.html
-        image_topic_ext = '/image_rect_color' if camera.is_rgb else '/image_rect'
-        bag.write(camera.topic_id + image_topic_ext, image_message, t=t)
-        bag.write(camera.topic_id + '/camera_info', camera_info, t=t)
+        try:
+            cv_image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+            camera_info.height, camera_info.width = cv_image.shape[:2]
+            encoding = 'bgr8' if camera.is_rgb else 'mono8'
+            image_message = cv_bridge.cv2_to_imgmsg(cv_image, encoding=encoding)
+            image_message.header.frame_id = rectified_camera_frame_id
+            t = to_rostime(timestamp)
+            image_message.header.stamp = t
+            camera_info.header.stamp = t
+            # Follow the naming conventions from
+            # http://docs.ros.org/melodic/api/sensor_msgs/html/msg/CameraInfo.html
+            image_topic_ext = '/image_rect_color' if camera.is_rgb else '/image_rect'
+            bag.write(camera.topic_id + image_topic_ext, image_message, t=t)
+            bag.write(camera.topic_id + '/camera_info', camera_info, t=t)
+        except:
+            print("Corrupted image ", image_path)
 
 
 def save_velo_data(bag, kitti, velo_frame_id, topic):
